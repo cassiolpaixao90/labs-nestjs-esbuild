@@ -1,26 +1,33 @@
 const { build } = require('esbuild');
-const { esbuildDecorators } = require('@anatine/esbuild-decorators');
+const glob = require('glob');
+const path = require('path');
+const esBuildPluginTsc = require('esbuild-plugin-tsc');
+const tsconfig = path.join(__dirname, './tsconfig.json');
 
-const isLocal = process.env.NODE_ENV === 'development';
+const entryPoints = glob.sync('src/**/main.ts');
 
-(async () => {
-  await build({
-    platform: 'node',
-    target: 'node14',
-    bundle: true,
-    sourcemap: isLocal ? true : false,
-    external: [
-      '@nestjs/microservices',
-      '@nestjs/platform-express',
-      'cache-manager',
-      'class-validator',
-      'class-transformer',
-      '@nestjs/websockets/socket-module'
-    ],
-    plugins: [await esbuildDecorators({ tsconfig: './tsconfig.json' })],
-    entryPoints: ['./src/main.ts'],
-    outfile: './dist/server.js',
-    format: 'cjs',
-    tsconfig: './tsconfig.json'
+build({
+  entryPoints: entryPoints,
+  outdir: './dist',
+  platform: 'node',
+  bundle: true,
+  minify: true,
+  plugins: [
+    esBuildPluginTsc({
+      force: true,
+      tsconfigPath: tsconfig
+    })
+  ],
+  external: [
+    'class-transformer',
+    '@nestjs/websockets/socket-module',
+    '@nestjs/microservices',
+    'class-validator'
+  ]
+})
+  .then(() => {
+    console.log('Build succeeded!');
+  })
+  .catch(() => {
+    console.error('Build failed!');
   });
-})();
